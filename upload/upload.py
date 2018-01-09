@@ -4,6 +4,7 @@ import os
 import StringIO
 import argparse
 import timeit
+import logging
 
 from apiclient import discovery
 from oauth2client import client
@@ -20,6 +21,8 @@ try:
 except ImportError:
     flags = None
 
+logging.basicConfig(filename='upload.log', format='%(asctime)s [%(levelname)s] %(message)s', level=logging.DEBUG)
+logger = logging.getLogger("")
 # If modifying these scopes, delete your previously saved credentials
 # at ~/.credentials/groupsmigration-python-quickstart.json
 SCOPES = 'https://www.googleapis.com/auth/apps.groups.migration'
@@ -47,7 +50,7 @@ def get_credentials():
         flow = client.flow_from_clientsecrets(CLIENT_SECRET_FILE, SCOPES)
         flow.user_agent = APPLICATION_NAME
         credentials = tools.run_flow(flow, store, flags)
-        print('Storing credentials to ' + credential_path)
+        logger.info('Storing credentials to ' + credential_path)
     return credentials
 
 
@@ -64,9 +67,9 @@ def main():
     service = discovery.build('groupsmigration', 'v1', http=http)
 
     group_email = flags.dest_group_email
-    print('Emails will be inserted into the group ' + group_email)
+    logger.info('Emails will be inserted into the group ' + group_email)
 
-    messages_dir = '../data/' + flags.src_group_id + '/mbox'
+    messages_dir = 'data/' + flags.src_group_id + '/mbox'
     total = 0
     success = 0
     start_time = timeit.default_timer()
@@ -77,12 +80,12 @@ def main():
         stream.write(message)
         media = apiclient.http.MediaIoBaseUpload(stream, mimetype='message/rfc822')
         result = service.archive().insert(groupId=group_email, media_body=media).execute()
-        print(result['responseCode'] + ' - ' + filename)
+        logger.info(result['responseCode'] + ' - ' + filename)
         if result['responseCode'] == 'SUCCESS':
             success += 1
 
     elapsed = timeit.default_timer() - start_time
-    print('Total messages {}, failed messages {}, execution time {} sec'.format(total, total - success, elapsed))
+    logger.info('Total messages {}, failed messages {}, execution time {} sec'.format(total, total - success, elapsed))
 
 
 if __name__ == '__main__':
